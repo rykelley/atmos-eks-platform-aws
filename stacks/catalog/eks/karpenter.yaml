@@ -1,0 +1,19 @@
+################################################################################
+# eks/karpenter — Optional, for autoscaling beyond the static node group.
+#
+# Disabled by default; enable per-stack via `enabled: true`.
+################################################################################
+components:
+  terraform:
+    eks/karpenter:
+      metadata:
+        component: eks/karpenter
+        type: abstract
+      vars:
+        enabled: false
+        chart_version: "1.0.6"
+        crd_chart_enabled: true
+        crd_chart_version: "1.0.6"
+        legacy_create_karpenter_instance_profile: false
+        interruption_handler_enabled: true
+        rbac_enabled: true

@@ -1,0 +1,90 @@
+################################################################################
+# eks/cluster — Managed EKS cluster + managed node group
+#
+# Mirrors the article's eksctl setup but encoded as IaC:
+#   - Kubernetes 1.31
+#   - Managed node group with t3.medium nodes (min 1 / desired 2 / max 3)
+#   - OIDC provider enabled (foundation for IRSA)
+#   - Public + private endpoint, restricted to internal CIDRs in prod
+################################################################################
+components:
+  terraform:
+    eks/cluster:
+      metadata:
+        component: eks/cluster
+        type: abstract
+      vars:
+        enabled: true
+        kubernetes_version: "1.31"
+        oidc_provider_enabled: true
+
+        # Endpoint exposure — stage mixins flip this to private-only in prod.
+        public_access_cidrs:
+          - 0.0.0.0/0
+        allowed_cidr_blocks: []
+        cluster_endpoint_private_access: true
+        cluster_endpoint_public_access: true
+
+        # Logging
+        enabled_cluster_log_types:
+          - api
+          - audit
+          - authenticator
+        cluster_log_retention_period: 30
+
+        # AddOns managed by EKS itself
+        addons:
+          vpc-cni:
+            addon_version: null
+            resolve_conflicts_on_create: OVERWRITE
+            resolve_conflicts_on_update: OVERWRITE
+          coredns:
+            addon_version: null
+            resolve_conflicts_on_create: OVERWRITE
+            resolve_conflicts_on_update: OVERWRITE
+          kube-proxy:
+            addon_version: null
+            resolve_conflicts_on_create: OVERWRITE
+            resolve_conflicts_on_update: OVERWRITE
+          aws-ebs-csi-driver:
+            addon_version: null
+            resolve_conflicts_on_create: OVERWRITE
+            resolve_conflicts_on_update: OVERWRITE
+
+        # Managed node groups — keyed by name. Stage mixins override sizing.
+        managed_node_groups_enabled: true
+        node_groups:
+          standard-workers:
+            instance_types:
+              - t3.medium
+            ami_type: AL2023_x86_64_STANDARD
+            min_size: 1
+            desired_size: 2
+            max_size: 3
+            kubernetes_labels:
+              workload: general
+            kubernetes_taints: []
+            block_device_mappings:
+              - device_name: /dev/xvda
+                ebs:
+                  volume_size: 50
+                  volume_type: gp3
+                  encrypted: true
+                  delete_on_termination: true
+
+        # Access entries — replace deprecated aws-auth ConfigMap
+        access_entry_map: {}
+        access_config:
+          authentication_mode: API_AND_CONFIG_MAP
+          bootstrap_cluster_creator_admin_permissions: true
+
+        # Security groups
+        cluster_encryption_config_enabled: true
+        cluster_encryption_config_resources:
+          - secrets
+
+        # KMS
+        cluster_encryption_config_kms_key_id: ""
+        cluster_encryption_config_kms_key_enable_key_rotation: true
+        cluster_encryption_config_kms_key_deletion_window_in_days: 10
+        cluster_encryption_config_kms_key_policy: null

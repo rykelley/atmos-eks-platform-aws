@@ -1,0 +1,18 @@
+################################################################################
+# dns-primary — Apex Route53 hosted zone for the platform's public domain.
+#
+# Lives in a single global stack (gbl-dns) so that every region/account that
+# needs to delegate a sub-zone can read it via remote state.
+################################################################################
+components:
+  terraform:
+    dns-primary:
+      metadata:
+        component: dns-primary
+        type: abstract
+      vars:
+        enabled: true
+        # Primary domain — change here, propagates everywhere via remote state.
+        domain_names:
+          - thepolarbearclub3d.com
+        record_config: []

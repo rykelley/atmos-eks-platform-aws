@@ -1,0 +1,42 @@
+# Stage mixin — prod
+# Production-only safeguards: private endpoint, multi-AZ, deletion protection.
+
+vars:
+  stage: prod
+  account_id: "333333333333"   # TODO: replace with real prod account id
+
+terraform:
+  vars:
+    tags:
+      Stage: prod
+
+components:
+  terraform:
+    eks/cluster:
+      vars:
+        cluster_endpoint_public_access: false
+        cluster_endpoint_private_access: true
+        public_access_cidrs: []
+        # Mid-size, autoscale-friendly. Karpenter recommended for prod growth.
+        node_groups:
+          standard-workers:
+            instance_types:
+              - t3.large
+            min_size: 3
+            desired_size: 4
+            max_size: 10
+        cluster_log_retention_period: 90
+    rds:
+      vars:
+        instance_class: db.m6g.large
+        multi_az: true
+        deletion_protection: true
+        skip_final_snapshot: false
+        backup_retention_period: 30
+    three-tier-app:
+      vars:
+        cluster_issuer: "letsencrypt-prod"
+        backend_replicas: 3
+        frontend_replicas: 3
+        # Apex domain in prod, no subdomain prefix.
+        hostname_template: "thepolarbearclub3d.com"

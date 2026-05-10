@@ -1,0 +1,27 @@
+# Global (region-less) resources for the dev account: Route53 hosted zone,
+# IAM, etc. Resolves to stack name: plat-platform-gbl-dev
+import:
+  - orgs/plat/platform/dev/_defaults
+  - mixins/region/global
+  - catalog/dns-primary
+  - catalog/dns-delegated
+
+components:
+  terraform:
+    dns-primary:
+      metadata:
+        component: dns-primary
+        inherits:
+          - dns-primary
+      vars:
+        enabled: true
+    dns-delegated:
+      metadata:
+        component: dns-delegated
+        inherits:
+          - dns-delegated
+      vars:
+        enabled: true
+        zone_config:
+          - subdomain: "dev"
+            zone_name: "thepolarbearclub3d.com"

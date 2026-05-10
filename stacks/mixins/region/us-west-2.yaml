@@ -1,0 +1,8 @@
+# Region mixin — us-west-2 (Oregon)
+vars:
+  region: us-west-2
+  environment: usw2
+  availability_zones:
+    - us-west-2a
+    - us-west-2b
+    - us-west-2c

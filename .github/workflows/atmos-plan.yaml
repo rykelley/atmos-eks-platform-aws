@@ -1,0 +1,69 @@
+name: atmos-plan
+
+# Triggers a `terraform plan` for every component touched by the PR.
+# Uses the official Cloud Posse Atmos GHA composite action.
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: atmos-plan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-affected:
+    name: Detect affected stacks
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.affected.outputs.matrix }}
+      has-affected-stacks: ${{ steps.affected.outputs.has-affected-stacks }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute affected stacks
+        id: affected
+        uses: cloudposse/github-action-atmos-affected-stacks@v5
+        with:
+          atmos-version: latest
+          nested-matrices-count: 1
+          atmos-include-spacelift-admin-stacks: false
+
+  plan:
+    name: ${{ matrix.stack_slug }}
+    needs: [detect-affected]
+    if: needs.detect-affected.outputs.has-affected-stacks == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-affected.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS creds
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ matrix.account_id }}:role/atmos-gitops-plan
+          aws-region: ${{ matrix.region }}
+
+      - name: Atmos terraform plan
+        uses: cloudposse/github-action-atmos-terraform-plan@v3
+        with:
+          component: ${{ matrix.component }}
+          stack: ${{ matrix.stack }}
+          sha: ${{ github.event.pull_request.head.sha }}
+          atmos-version: latest
+          terraform-version: 1.9.5

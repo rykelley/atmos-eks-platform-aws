@@ -1,0 +1,178 @@
+# Atmos vendor manifest
+# Pulls Cloud Posse Terraform root modules into components/terraform/
+# Run: `atmos vendor pull`
+# Docs: https://atmos.tools/core-concepts/vendor
+
+apiVersion: atmos/v1
+kind: AtmosVendorConfig
+metadata:
+  name: atmos-eks-platform-aws
+  description: |
+    Vendored Cloud Posse terraform-aws-components used by the
+    plat platform (3-tier app on EKS with HTTPS).
+
+spec:
+  # Pin to a known-good release of cloudposse/terraform-aws-components.
+  # Bump this single value to upgrade the entire platform.
+  imports: []
+
+  sources:
+    # ---------------------------------------------------------------------
+    # Foundation
+    # ---------------------------------------------------------------------
+    - component: "tfstate-backend"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/tfstate-backend?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/tfstate-backend"
+      included_paths:
+        - "**/*.tf"
+        - "**/*.md"
+      excluded_paths:
+        - "**/*.tfvars"
+      tags:
+        - foundation
+
+    - component: "account-map"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/account-map?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/account-map"
+      included_paths:
+        - "**/*.tf"
+        - "**/*.md"
+      tags:
+        - foundation
+
+    # ---------------------------------------------------------------------
+    # Networking
+    # ---------------------------------------------------------------------
+    - component: "vpc"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/vpc?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/vpc"
+      included_paths:
+        - "**/*.tf"
+        - "**/*.md"
+      tags:
+        - network
+
+    - component: "vpc-flow-logs-bucket"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/vpc-flow-logs-bucket?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/vpc-flow-logs-bucket"
+      included_paths:
+        - "**/*.tf"
+        - "**/*.md"
+      tags:
+        - network
+
+    # ---------------------------------------------------------------------
+    # DNS / TLS
+    # ---------------------------------------------------------------------
+    - component: "dns-primary"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/dns-primary?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/dns-primary"
+      tags:
+        - dns
+
+    - component: "dns-delegated"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/dns-delegated?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/dns-delegated"
+      tags:
+        - dns
+
+    - component: "acm"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/acm?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/acm"
+      tags:
+        - dns
+
+    # ---------------------------------------------------------------------
+    # EKS Cluster + IRSA Foundation
+    # ---------------------------------------------------------------------
+    - component: "eks/cluster"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/eks/cluster?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/eks/cluster"
+      tags:
+        - eks
+
+    - component: "eks/karpenter"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/eks/karpenter?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/eks/karpenter"
+      tags:
+        - eks
+
+    - component: "eks/karpenter-node-pool"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/eks/karpenter-node-pool?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/eks/karpenter-node-pool"
+      tags:
+        - eks
+
+    # ---------------------------------------------------------------------
+    # EKS Addons
+    # ---------------------------------------------------------------------
+    - component: "eks/aws-load-balancer-controller"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/eks/aws-load-balancer-controller?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/eks/aws-load-balancer-controller"
+      tags:
+        - eks-addon
+
+    - component: "eks/cert-manager"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/eks/cert-manager?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/eks/cert-manager"
+      tags:
+        - eks-addon
+
+    - component: "eks/external-dns"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/eks/external-dns?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/eks/external-dns"
+      tags:
+        - eks-addon
+
+    - component: "eks/external-secrets-operator"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/eks/external-secrets-operator?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/eks/external-secrets-operator"
+      tags:
+        - eks-addon
+
+    - component: "eks/metrics-server"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/eks/metrics-server?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/eks/metrics-server"
+      tags:
+        - eks-addon
+
+    # ---------------------------------------------------------------------
+    # Data Layer
+    # ---------------------------------------------------------------------
+    - component: "rds"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/rds?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/rds"
+      tags:
+        - data

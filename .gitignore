@@ -1,0 +1,42 @@
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/*.tfvars
+!**/*.example.tfvars
+**/.terraform.tfstate.lock.info
+**/crash.log
+**/crash.*.log
+**/override.tf
+**/override.tf.json
+**/*_override.tf
+**/*_override.tf.json
+**/.terragrunt-cache/
+
+# Atmos generated files
+**/backend.tf.json
+**/providers_override.tf.json
+**/*.planfile
+**/*.auto.tfvars.json
+
+# Local Atmos cache
+.atmos/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Secrets
+.env
+*.pem
+*.key
+!docs/**/*.key
+
+# Helm
+charts/*.tgz
+**/charts/*.tgz

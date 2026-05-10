@@ -1,0 +1,17 @@
+################################################################################
+# acm — wildcard ACM cert for the delegated subzone, DNS-validated via Route53
+################################################################################
+components:
+  terraform:
+    acm:
+      metadata:
+        component: acm
+        type: abstract
+      vars:
+        enabled: true
+        process_domain_validation_options: true
+        validation_method: DNS
+        # Use the delegated zone for this stage. Subject Alternative Name
+        # covers wildcards so apps under <stage>.thepolarbearclub3d.com get
+        # a single shared cert.
+        dns_private_zone_enabled: false

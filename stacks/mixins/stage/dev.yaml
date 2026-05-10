@@ -1,0 +1,39 @@
+# Stage mixin — dev
+# Applied to every stack in the dev account. Sized small, generous limits,
+# Let's Encrypt staging issuer.
+
+vars:
+  stage: dev
+  account_id: "111111111111"   # TODO: replace with real dev account id
+
+terraform:
+  vars:
+    tags:
+      Stage: dev
+
+components:
+  terraform:
+    eks/cluster:
+      vars:
+        # Smaller node group, public endpoint OK in dev.
+        cluster_endpoint_public_access: true
+        public_access_cidrs:
+          - 0.0.0.0/0
+        node_groups:
+          standard-workers:
+            instance_types:
+              - t3.medium
+            min_size: 1
+            desired_size: 2
+            max_size: 3
+    rds:
+      vars:
+        instance_class: db.t3.small
+        multi_az: false
+        deletion_protection: false
+        skip_final_snapshot: true
+    three-tier-app:
+      vars:
+        cluster_issuer: "letsencrypt-staging"
+        backend_replicas: 1
+        frontend_replicas: 1

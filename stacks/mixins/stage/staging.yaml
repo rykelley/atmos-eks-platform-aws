@@ -1,0 +1,33 @@
+# Stage mixin — staging
+vars:
+  stage: staging
+  account_id: "222222222222"   # TODO: replace with real staging account id
+
+terraform:
+  vars:
+    tags:
+      Stage: staging
+
+components:
+  terraform:
+    eks/cluster:
+      vars:
+        cluster_endpoint_public_access: true
+        node_groups:
+          standard-workers:
+            instance_types:
+              - t3.large
+            min_size: 2
+            desired_size: 3
+            max_size: 6
+    rds:
+      vars:
+        instance_class: db.t3.medium
+        multi_az: true
+        deletion_protection: true
+        skip_final_snapshot: false
+    three-tier-app:
+      vars:
+        cluster_issuer: "letsencrypt-prod"
+        backend_replicas: 2
+        frontend_replicas: 2

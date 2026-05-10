@@ -1,0 +1,6 @@
+# Tenant-level defaults for `platform` (the engineering platform tenant).
+import:
+  - orgs/plat/_defaults
+
+vars:
+  tenant: platform

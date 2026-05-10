@@ -1,0 +1,64 @@
+name: atmos-apply
+
+# After a PR merges to main, applies the saved plan from the matching
+# atmos-plan run. Uses Cloud Posse's apply action which talks to the same
+# S3 plan storage configured in `atmos.yaml`.
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: atmos-apply
+  cancel-in-progress: false
+
+jobs:
+  detect-affected:
+    name: Detect affected stacks
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.affected.outputs.matrix }}
+      has-affected-stacks: ${{ steps.affected.outputs.has-affected-stacks }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute affected stacks
+        id: affected
+        uses: cloudposse/github-action-atmos-affected-stacks@v5
+        with:
+          atmos-version: latest
+          nested-matrices-count: 1
+
+  apply:
+    name: ${{ matrix.stack_slug }}
+    needs: [detect-affected]
+    if: needs.detect-affected.outputs.has-affected-stacks == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1   # Apply serially — no concurrent state writes.
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-affected.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS creds
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ matrix.account_id }}:role/atmos-gitops-apply
+          aws-region: ${{ matrix.region }}
+
+      - name: Atmos terraform apply
+        uses: cloudposse/github-action-atmos-terraform-apply@v2
+        with:
+          component: ${{ matrix.component }}
+          stack: ${{ matrix.stack }}
+          sha: ${{ github.sha }}
+          atmos-version: latest
+          terraform-version: 1.9.5

@@ -1,0 +1,19 @@
+# Global resources for the prod account — this is where the APEX
+# Route53 hosted zone for thepolarbearclub3d.com lives. dev/staging accounts
+# delegate sub-zones to it.
+import:
+  - orgs/plat/platform/prod/_defaults
+  - mixins/region/global
+  - catalog/dns-primary
+
+components:
+  terraform:
+    dns-primary:
+      metadata:
+        component: dns-primary
+        inherits:
+          - dns-primary
+      vars:
+        enabled: true
+        domain_names:
+          - thepolarbearclub3d.com

@@ -1,0 +1,79 @@
+################################################################################
+# Top-level stack: plat-platform-usw2-prod
+#
+# Same component set as dev, but with prod-grade overrides applied via the
+# stage mixin (private endpoint, multi-AZ RDS, larger nodes, etc.).
+################################################################################
+import:
+  - orgs/plat/platform/prod/_defaults
+  - mixins/region/us-west-2
+
+  - catalog/tfstate-backend
+  - catalog/vpc
+  - catalog/acm
+  - catalog/eks/cluster
+  - catalog/eks/aws-load-balancer-controller
+  - catalog/eks/cert-manager
+  - catalog/eks/external-dns
+  - catalog/eks/external-secrets-operator
+  - catalog/eks/metrics-server
+  - catalog/eks/karpenter
+  - catalog/rds
+  - catalog/three-tier-app
+
+components:
+  terraform:
+    tfstate-backend:
+      metadata: { component: tfstate-backend, inherits: [tfstate-backend] }
+      vars: { enabled: true }
+
+    vpc:
+      metadata: { component: vpc, inherits: [vpc] }
+      vars:
+        enabled: true
+        ipv4_primary_cidr_block: 10.20.0.0/16
+        nat_gateway_enabled: true
+
+    acm:
+      metadata: { component: acm, inherits: [acm] }
+      vars:
+        enabled: true
+        domain_name: "thepolarbearclub3d.com"
+        subject_alternative_names:
+          - "*.thepolarbearclub3d.com"
+
+    eks/cluster:
+      metadata: { component: eks/cluster, inherits: [eks/cluster] }
+      vars: { enabled: true }
+
+    eks/aws-load-balancer-controller:
+      metadata: { component: eks/aws-load-balancer-controller, inherits: [eks/aws-load-balancer-controller] }
+      vars: { enabled: true }
+
+    eks/cert-manager:
+      metadata: { component: eks/cert-manager, inherits: [eks/cert-manager] }
+      vars: { enabled: true }
+
+    eks/external-dns:
+      metadata: { component: eks/external-dns, inherits: [eks/external-dns] }
+      vars: { enabled: true }
+
+    eks/external-secrets-operator:
+      metadata: { component: eks/external-secrets-operator, inherits: [eks/external-secrets-operator] }
+      vars: { enabled: true }
+
+    eks/metrics-server:
+      metadata: { component: eks/metrics-server, inherits: [eks/metrics-server] }
+      vars: { enabled: true }
+
+    eks/karpenter:
+      metadata: { component: eks/karpenter, inherits: [eks/karpenter] }
+      vars: { enabled: true }
+
+    rds:
+      metadata: { component: rds, inherits: [rds] }
+      vars: { enabled: true }
+
+    three-tier-app:
+      metadata: { component: three-tier-app, inherits: [three-tier-app] }
+      vars: { enabled: true }

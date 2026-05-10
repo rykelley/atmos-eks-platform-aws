@@ -1,0 +1,124 @@
+################################################################################
+# Top-level stack: plat-platform-usw2-dev
+#
+# This single file pulls together every component for the dev environment in
+# us-west-2 by importing region/stage mixins and the component catalogs.
+################################################################################
+import:
+  - orgs/plat/platform/dev/_defaults
+  - mixins/region/us-west-2
+
+  # Foundation
+  - catalog/tfstate-backend
+  - catalog/vpc
+
+  # TLS
+  - catalog/acm
+
+  # Cluster + addons
+  - catalog/eks/cluster
+  - catalog/eks/aws-load-balancer-controller
+  - catalog/eks/cert-manager
+  - catalog/eks/external-dns
+  - catalog/eks/external-secrets-operator
+  - catalog/eks/metrics-server
+
+  # Data
+  - catalog/rds
+
+  # App
+  - catalog/three-tier-app
+
+components:
+  terraform:
+    tfstate-backend:
+      metadata:
+        component: tfstate-backend
+        inherits:
+          - tfstate-backend
+      vars:
+        enabled: true
+
+    vpc:
+      metadata:
+        component: vpc
+        inherits:
+          - vpc
+      vars:
+        enabled: true
+        ipv4_primary_cidr_block: 10.10.0.0/16
+
+    acm:
+      metadata:
+        component: acm
+        inherits:
+          - acm
+      vars:
+        enabled: true
+        domain_name: "dev.thepolarbearclub3d.com"
+        subject_alternative_names:
+          - "*.dev.thepolarbearclub3d.com"
+
+    eks/cluster:
+      metadata:
+        component: eks/cluster
+        inherits:
+          - eks/cluster
+      vars:
+        enabled: true
+
+    eks/aws-load-balancer-controller:
+      metadata:
+        component: eks/aws-load-balancer-controller
+        inherits:
+          - eks/aws-load-balancer-controller
+      vars:
+        enabled: true
+
+    eks/cert-manager:
+      metadata:
+        component: eks/cert-manager
+        inherits:
+          - eks/cert-manager
+      vars:
+        enabled: true
+
+    eks/external-dns:
+      metadata:
+        component: eks/external-dns
+        inherits:
+          - eks/external-dns
+      vars:
+        enabled: true
+
+    eks/external-secrets-operator:
+      metadata:
+        component: eks/external-secrets-operator
+        inherits:
+          - eks/external-secrets-operator
+      vars:
+        enabled: true
+
+    eks/metrics-server:
+      metadata:
+        component: eks/metrics-server
+        inherits:
+          - eks/metrics-server
+      vars:
+        enabled: true
+
+    rds:
+      metadata:
+        component: rds
+        inherits:
+          - rds
+      vars:
+        enabled: true
+
+    three-tier-app:
+      metadata:
+        component: three-tier-app
+        inherits:
+          - three-tier-app
+      vars:
+        enabled: true

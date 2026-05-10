@@ -1,0 +1,3 @@
+# Reserved for future Helmfile-based components.
+# All current cluster addons are managed via Cloud Posse Terraform components
+# under components/terraform/eks/.

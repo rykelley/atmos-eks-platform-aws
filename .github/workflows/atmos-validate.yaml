@@ -1,0 +1,22 @@
+name: atmos-validate
+
+# Lint atmos.yaml + every stack on every PR (no AWS creds needed).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install atmos
+        uses: cloudposse/github-action-setup-atmos@v2
+        with:
+          atmos-version: latest
+      - name: Validate stacks
+        run: atmos validate stacks
+      - name: Describe a known stack (smoke test)
+        run: atmos describe stacks -s plat-platform-usw2-dev > /dev/null

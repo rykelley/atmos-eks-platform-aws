@@ -1,0 +1,43 @@
+################################################################################
+# eks/external-dns — Auto-creates Route53 records for Ingress hostnames.
+#
+# This is what eliminates the manual `aws route53 change-resource-record-sets`
+# step in the article. Annotate an Ingress with a hostname and external-dns
+# wires it to the ALB automatically.
+################################################################################
+components:
+  terraform:
+    eks/external-dns:
+      metadata:
+        component: eks/external-dns
+        type: abstract
+      vars:
+        enabled: true
+        name: "external-dns"
+        kubernetes_namespace: "external-dns"
+        create_namespace: true
+        chart: "external-dns"
+        chart_repository: "https://kubernetes-sigs.github.io/external-dns/"
+        chart_version: "1.15.0"
+        timeout: 300
+        wait: true
+        atomic: true
+        cleanup_on_fail: true
+
+        chart_values:
+          provider: aws
+          policy: sync
+          registry: txt
+          txtOwnerId: "{{ .stack }}"
+          aws:
+            zoneType: public
+            preferCNAME: true
+          sources:
+            - service
+            - ingress
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi

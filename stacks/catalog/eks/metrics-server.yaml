@@ -1,0 +1,31 @@
+################################################################################
+# eks/metrics-server — required for `kubectl top` and HPA
+################################################################################
+components:
+  terraform:
+    eks/metrics-server:
+      metadata:
+        component: eks/metrics-server
+        type: abstract
+      vars:
+        enabled: true
+        name: "metrics-server"
+        kubernetes_namespace: "kube-system"
+        create_namespace: false
+        chart: "metrics-server"
+        chart_repository: "https://kubernetes-sigs.github.io/metrics-server/"
+        chart_version: "3.12.1"
+        timeout: 180
+        wait: true
+        atomic: true
+
+        chart_values:
+          args:
+            - --kubelet-insecure-tls
+            - --kubelet-preferred-address-types=InternalIP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi

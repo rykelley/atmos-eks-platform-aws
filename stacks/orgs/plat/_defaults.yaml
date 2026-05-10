@@ -1,0 +1,15 @@
+# Defaults shared by every stack in the `plat` org.
+#
+# Inherited by every account/region/stage stack via Atmos imports.
+
+vars:
+  namespace: plat
+  tenant: platform
+
+terraform:
+  vars:
+    tags:
+      Namespace: plat
+      Tenant: platform
+      ManagedBy: atmos
+      GitRepo: atmos-eks-platform-aws

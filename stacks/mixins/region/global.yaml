@@ -1,0 +1,4 @@
+# Region mixin — global resources (IAM, Route53, CloudFront, etc.)
+vars:
+  region: us-east-1
+  environment: gbl

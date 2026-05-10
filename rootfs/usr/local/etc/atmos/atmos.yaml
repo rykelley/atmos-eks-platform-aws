@@ -1,0 +1,3 @@
+# Symlink target for containerized atmos runs (Geodesic / GitHub Actions).
+# Mirrors the repo-root atmos.yaml; keep them in sync or `include` from one.
+include: ../../../../../atmos.yaml

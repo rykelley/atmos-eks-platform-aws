@@ -1,0 +1,36 @@
+################################################################################
+# VPC — three-tier (public / private / database) with required EKS subnet tags
+#
+# Subnet tag conventions baked in below come straight from the AWS Load
+# Balancer Controller docs and from the article we're implementing:
+#
+#   public  subnets → kubernetes.io/role/elb            = 1
+#   private subnets → kubernetes.io/role/internal-elb   = 1
+#
+# Without these the AWS LBC silently refuses to provision the ALB.
+################################################################################
+components:
+  terraform:
+    vpc:
+      metadata:
+        component: vpc
+        type: abstract
+      vars:
+        enabled: true
+        ipv4_primary_cidr_block: 10.0.0.0/16
+        nat_gateway_enabled: true
+        nat_instance_enabled: false
+        # One NAT GW per AZ in prod, single shared NAT in non-prod (cheap)
+        max_subnet_count: 3
+        map_public_ip_on_launch: true
+        assign_generated_ipv6_cidr_block: false
+        availability_zones_count: 3
+
+        # These tags MUST be present for the AWS Load Balancer Controller
+        # to find subnets when provisioning ALBs/NLBs from Ingress objects.
+        public_subnets_additional_tags:
+          kubernetes.io/role/elb: "1"
+        private_subnets_additional_tags:
+          kubernetes.io/role/internal-elb: "1"
+
+        subnet_type_tag_key: "plat.dev/subnet/type"

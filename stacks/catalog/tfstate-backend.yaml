@@ -1,0 +1,16 @@
+################################################################################
+# tfstate-backend — S3 + DynamoDB for remote state
+################################################################################
+components:
+  terraform:
+    tfstate-backend:
+      metadata:
+        component: tfstate-backend
+        type: abstract
+      vars:
+        enabled: true
+        force_destroy: false
+        prevent_unencrypted_uploads: true
+        access_roles_enabled: false
+        # The state of tfstate-backend itself is bootstrapped locally first,
+        # then migrated to S3.

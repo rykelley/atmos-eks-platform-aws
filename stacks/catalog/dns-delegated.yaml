@@ -1,0 +1,19 @@
+################################################################################
+# dns-delegated — Per-account / per-stage delegated subzone.
+#
+# dev   →  dev.thepolarbearclub3d.com
+# stg   →  stg.thepolarbearclub3d.com
+# prod  →  thepolarbearclub3d.com  (apex, used directly)
+################################################################################
+components:
+  terraform:
+    dns-delegated:
+      metadata:
+        component: dns-delegated
+        type: abstract
+      vars:
+        enabled: true
+        request_acm_certificate: true
+        zone_config:
+          - subdomain: "{{ .stage }}"
+            zone_name: "thepolarbearclub3d.com"

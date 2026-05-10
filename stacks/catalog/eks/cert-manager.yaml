@@ -1,0 +1,48 @@
+################################################################################
+# eks/cert-manager — TLS certificate automation in-cluster.
+#
+# We use DNS01 challenges via Route53, which means cert-manager needs an IAM
+# role (IRSA) that can ChangeResourceRecordSets on the delegated zone.
+#
+# Two ClusterIssuers are created:
+#   - letsencrypt-staging  (use while iterating to avoid LE rate limits)
+#   - letsencrypt-prod
+################################################################################
+components:
+  terraform:
+    eks/cert-manager:
+      metadata:
+        component: eks/cert-manager
+        type: abstract
+      vars:
+        enabled: true
+        name: "cert-manager"
+        kubernetes_namespace: "cert-manager"
+        create_namespace: true
+        chart: "cert-manager"
+        chart_repository: "https://charts.jetstack.io"
+        chart_version: "v1.15.3"
+        timeout: 300
+        wait: true
+        atomic: true
+        cleanup_on_fail: true
+
+        cert_manager_issuer_support_email_template: "platform+%[email protected]"
+
+        # IRSA permissions handled by the component for Route53 DNS01.
+        letsencrypt_enabled: true
+
+        chart_values:
+          installCRDs: true
+          replicaCount: 2
+          extraArgs:
+            - "--dns01-recursive-nameservers-only"
+            - "--dns01-recursive-nameservers=8.8.8.8:53,1.1.1.1:53"
+          prometheus:
+            enabled: false
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 256Mi

@@ -1,0 +1,41 @@
+################################################################################
+# eks/aws-load-balancer-controller — Installs AWS LBC into kube-system via Helm.
+# Uses IRSA (OIDC) — no AWS keys in the cluster.
+#
+# This is the controller that turns a Kubernetes Ingress into an AWS ALB.
+################################################################################
+components:
+  terraform:
+    eks/aws-load-balancer-controller:
+      metadata:
+        component: eks/aws-load-balancer-controller
+        type: abstract
+      vars:
+        enabled: true
+        name: "aws-load-balancer-controller"
+        kubernetes_namespace: "kube-system"
+        create_namespace: false
+        # Helm chart: https://github.com/aws/eks-charts
+        chart: "aws-load-balancer-controller"
+        chart_repository: "https://aws.github.io/eks-charts"
+        chart_version: "1.8.1"
+        timeout: 300
+        wait: true
+        atomic: true
+        cleanup_on_fail: true
+
+        # IRSA — service account in kube-system named aws-load-balancer-controller
+        service_account_name: "aws-load-balancer-controller"
+        service_account_namespace: "kube-system"
+
+        chart_values:
+          replicaCount: 2
+          enableServiceMutatorWebhook: false
+          podDisruptionBudget:
+            maxUnavailable: 1
+          resources:
+            requests:
+              cpu: 100m
+              memory: 200Mi
+            limits:
+              memory: 500Mi

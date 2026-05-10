@@ -1,0 +1,8 @@
+# Region mixin — us-east-1 (Virginia)
+vars:
+  region: us-east-1
+  environment: use1
+  availability_zones:
+    - us-east-1a
+    - us-east-1b
+    - us-east-1c
