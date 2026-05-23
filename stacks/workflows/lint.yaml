@@ -1,0 +1,29 @@
+################################################################################
+# Lint workflow — pre-commit-friendly local validation.
+#
+# Usage:
+#   atmos workflow validate -f lint
+#
+# Doesn't take a -s flag; validates ALL stacks the repo defines.
+################################################################################
+workflows:
+
+  validate:
+    description: Validate every stack file in the repo.
+    steps:
+      - command: validate stacks
+        type: atmos
+
+  describe-dev:
+    description: Smoke test — print the merged config for the dev stack.
+    steps:
+      - command: describe stacks -s plat-platform-usw2-dev
+        type: atmos
+
+  list:
+    description: List every stack and component the repo defines.
+    steps:
+      - command: list stacks
+        type: atmos
+      - command: list components -s plat-platform-usw2-dev
+        type: atmos

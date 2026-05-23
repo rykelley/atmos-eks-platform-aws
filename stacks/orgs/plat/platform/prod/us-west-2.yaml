@@ -19,7 +19,8 @@ import:
   - catalog/eks/metrics-server
   - catalog/eks/karpenter
   - catalog/rds
-  - catalog/three-tier-app
+  - catalog/s3-bucket
+  - catalog/polarbear-app
 
 components:
   terraform:
@@ -74,6 +75,32 @@ components:
       metadata: { component: rds, inherits: [rds] }
       vars: { enabled: true }
 
-    three-tier-app:
-      metadata: { component: three-tier-app, inherits: [three-tier-app] }
-      vars: { enabled: true }
+    s3-bucket:
+      metadata: { component: s3-bucket, inherits: [s3-bucket] }
+      vars:
+        enabled: true
+        force_destroy: false
+        versioning_enabled: true
+
+    polarbear-app:
+      metadata: { component: polarbear-app, inherits: [polarbear-app] }
+      vars:
+        enabled: true
+        # Prod serves the apex domain
+        hostname: "thepolarbearclub3d.com"
+        cluster_issuer: "letsencrypt-prod"
+        replicas: 3
+        env_config:
+          NODE_ENV: "production"
+          NEXT_PUBLIC_SITE: "https://thepolarbearclub3d.com"
+          EMAIL_VERIFICATION_ENDPOINT_URL: "https://thepolarbearclub3d.com/api/email/verify"
+          EMAIL_PASSWORD_RESET_URL: "https://thepolarbearclub3d.com/forgot-password"
+          DATABASE_TYPE: "pg"
+          STORAGE_PROVIDER: "s3"
+          EMAIL_PROVIDER: "resend"
+          DEPLOYMENT_PLATFORM: "node"
+          AUTH_TRUST_HOST: "true"
+          NEXT_PUBLIC_AUTH_CREDENTIALS: "1"
+          NEXT_PUBLIC_BLOG_SEARCH: "enable"
+          HOST: "0.0.0.0"
+          PORT: "3000"

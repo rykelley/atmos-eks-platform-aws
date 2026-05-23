@@ -176,3 +176,14 @@ spec:
         - "components/terraform/rds"
       tags:
         - data
+
+    # ---------------------------------------------------------------------
+    # Object storage for the polar-bear-club-site app uploads
+    # ---------------------------------------------------------------------
+    - component: "s3-bucket"
+      source: "github.com/cloudposse/terraform-aws-components.git//modules/s3-bucket?ref={{.Version}}"
+      version: "1.520.0"
+      targets:
+        - "components/terraform/s3-bucket"
+      tags:
+        - data

@@ -1,0 +1,95 @@
+################################################################################
+# Bootstrap workflow — applies every component for a stack in dependency order.
+#
+# Usage:
+#   atmos workflow apply-all -f bootstrap -s plat-platform-usw2-dev
+#
+# To bootstrap a brand-new account, also run the global stack first to create
+# the delegated DNS zone:
+#   atmos workflow apply-global -f bootstrap -s plat-platform-gbl-dev
+#
+# Docs: https://atmos.tools/core-concepts/workflows
+################################################################################
+workflows:
+
+  # -------------------------------------------------------------------------
+  # apply-all — full regional bootstrap (foundation → cluster → addons → app)
+  # -------------------------------------------------------------------------
+  apply-all:
+    description: |
+      Apply every component in a regional stack, in dependency order.
+      Use this once per region/stage when standing up a new account.
+    steps:
+      - command: terraform apply tfstate-backend -auto-approve
+        name: tfstate-backend
+      - command: terraform apply vpc -auto-approve
+        name: vpc
+      - command: terraform apply acm -auto-approve
+        name: acm
+      - command: terraform apply eks/cluster -auto-approve
+        name: eks-cluster
+      - command: terraform apply eks/aws-load-balancer-controller -auto-approve
+        name: eks-alb-controller
+      - command: terraform apply eks/external-dns -auto-approve
+        name: eks-external-dns
+      - command: terraform apply eks/cert-manager -auto-approve
+        name: eks-cert-manager
+      - command: terraform apply eks/external-secrets-operator -auto-approve
+        name: eks-external-secrets
+      - command: terraform apply eks/metrics-server -auto-approve
+        name: eks-metrics-server
+      - command: terraform apply rds -auto-approve
+        name: rds
+      - command: terraform apply s3-bucket -auto-approve
+        name: s3-bucket
+      - command: terraform apply polarbear-app -auto-approve
+        name: polarbear-app
+
+  # -------------------------------------------------------------------------
+  # apply-global — apex / delegated zone setup. Region-less.
+  # -------------------------------------------------------------------------
+  apply-global:
+    description: |
+      Apply the global (region-less) components for a stage: the apex
+      Route53 zone (in prod) or the delegated subzone (in dev/staging).
+    steps:
+      - command: terraform apply tfstate-backend -auto-approve
+        name: tfstate-backend
+      - command: terraform apply dns-primary -auto-approve
+        name: dns-primary
+      # dns-delegated is no-op in the prod global stack (no parent zone)
+      - command: terraform apply dns-delegated -auto-approve
+        name: dns-delegated
+
+  # -------------------------------------------------------------------------
+  # apply-foundation — just the underlying infra (no addons or app)
+  # -------------------------------------------------------------------------
+  apply-foundation:
+    description: VPC + EKS cluster + RDS + S3 only. Skips addons and app.
+    steps:
+      - command: terraform apply tfstate-backend -auto-approve
+      - command: terraform apply vpc -auto-approve
+      - command: terraform apply eks/cluster -auto-approve
+      - command: terraform apply rds -auto-approve
+      - command: terraform apply s3-bucket -auto-approve
+
+  # -------------------------------------------------------------------------
+  # apply-app — just the app (everything else assumed already applied)
+  # -------------------------------------------------------------------------
+  apply-app:
+    description: Apply only the polarbear-app component (assumes infra is up).
+    steps:
+      - command: terraform apply polarbear-app -auto-approve
+        name: polarbear-app
+
+  # -------------------------------------------------------------------------
+  # apply-addons — install / update every cluster addon (no cluster, no app)
+  # -------------------------------------------------------------------------
+  apply-addons:
+    description: All EKS addons (LBC, cert-manager, external-dns, ESO, metrics-server).
+    steps:
+      - command: terraform apply eks/aws-load-balancer-controller -auto-approve
+      - command: terraform apply eks/external-dns -auto-approve
+      - command: terraform apply eks/cert-manager -auto-approve
+      - command: terraform apply eks/external-secrets-operator -auto-approve
+      - command: terraform apply eks/metrics-server -auto-approve

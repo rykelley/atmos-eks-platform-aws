@@ -1,0 +1,62 @@
+################################################################################
+# Destroy workflow — tears down every component for a stack in REVERSE order.
+#
+# Usage:
+#   atmos workflow destroy-all -f destroy -s plat-platform-usw2-dev
+#
+# WARNING: This is destructive. RDS deletion + final snapshot behaviour is
+# governed by the rds component's `skip_final_snapshot` and
+# `deletion_protection` vars — make sure those are set how you want before
+# running.
+################################################################################
+workflows:
+
+  destroy-all:
+    description: |
+      Destroy every component in a regional stack, in reverse-dependency
+      order. ⚠️ Deletes RDS data unless deletion_protection is on, and
+      will NOT delete the S3 bucket unless force_destroy=true.
+    steps:
+      - command: terraform destroy polarbear-app -auto-approve
+      - command: terraform destroy s3-bucket -auto-approve
+      - command: terraform destroy rds -auto-approve
+      - command: terraform destroy eks/metrics-server -auto-approve
+      - command: terraform destroy eks/external-secrets-operator -auto-approve
+      - command: terraform destroy eks/cert-manager -auto-approve
+      - command: terraform destroy eks/external-dns -auto-approve
+      - command: terraform destroy eks/aws-load-balancer-controller -auto-approve
+      - command: terraform destroy eks/cluster -auto-approve
+      - command: terraform destroy acm -auto-approve
+      - command: terraform destroy vpc -auto-approve
+      # tfstate-backend is intentionally NOT destroyed — doing so would
+      # orphan every other component's state. Destroy it manually only when
+      # decommissioning the entire account.
+
+  destroy-app-only:
+    description: |
+      Tear down just the app layer (polarbear-app), leaving the cluster,
+      addons, RDS, and S3 in place. Useful for "reset the app" scenarios.
+    steps:
+      - command: terraform destroy polarbear-app -auto-approve
+
+  destroy-app-and-data:
+    description: |
+      Tear down the app + RDS + S3. Cluster and addons stay up.
+      ⚠️ Loses DB data unless deletion_protection is on.
+    steps:
+      - command: terraform destroy polarbear-app -auto-approve
+      - command: terraform destroy rds -auto-approve
+      - command: terraform destroy s3-bucket -auto-approve
+
+  destroy-cluster-only:
+    description: |
+      Tear down the cluster + addons, but leave VPC, RDS, and S3 alive
+      (e.g. to recreate the cluster on a new K8s version without losing data).
+    steps:
+      - command: terraform destroy polarbear-app -auto-approve
+      - command: terraform destroy eks/metrics-server -auto-approve
+      - command: terraform destroy eks/external-secrets-operator -auto-approve
+      - command: terraform destroy eks/cert-manager -auto-approve
+      - command: terraform destroy eks/external-dns -auto-approve
+      - command: terraform destroy eks/aws-load-balancer-controller -auto-approve
+      - command: terraform destroy eks/cluster -auto-approve

@@ -1,0 +1,48 @@
+################################################################################
+# Plan workflow — terraform plan for every component, in dependency order.
+#
+# Usage:
+#   atmos workflow plan-all -f plan -s plat-platform-usw2-dev
+#
+# Useful before a real bootstrap to catch IAM / quota / dependency issues
+# before any state is mutated.
+################################################################################
+workflows:
+
+  plan-all:
+    description: Plan every component in a regional stack (no apply).
+    steps:
+      - command: terraform plan tfstate-backend
+      - command: terraform plan vpc
+      - command: terraform plan acm
+      - command: terraform plan eks/cluster
+      - command: terraform plan eks/aws-load-balancer-controller
+      - command: terraform plan eks/external-dns
+      - command: terraform plan eks/cert-manager
+      - command: terraform plan eks/external-secrets-operator
+      - command: terraform plan eks/metrics-server
+      - command: terraform plan rds
+      - command: terraform plan s3-bucket
+      - command: terraform plan polarbear-app
+
+  plan-foundation:
+    description: Plan VPC + cluster + RDS + S3 only.
+    steps:
+      - command: terraform plan vpc
+      - command: terraform plan eks/cluster
+      - command: terraform plan rds
+      - command: terraform plan s3-bucket
+
+  plan-app:
+    description: Plan only the polarbear-app component.
+    steps:
+      - command: terraform plan polarbear-app
+
+  plan-addons:
+    description: Plan only the cluster addons.
+    steps:
+      - command: terraform plan eks/aws-load-balancer-controller
+      - command: terraform plan eks/external-dns
+      - command: terraform plan eks/cert-manager
+      - command: terraform plan eks/external-secrets-operator
+      - command: terraform plan eks/metrics-server

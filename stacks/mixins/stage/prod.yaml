@@ -33,10 +33,9 @@ components:
         deletion_protection: true
         skip_final_snapshot: false
         backup_retention_period: 30
-    three-tier-app:
+    polarbear-app:
       vars:
         cluster_issuer: "letsencrypt-prod"
-        backend_replicas: 3
-        frontend_replicas: 3
+        replicas: 3
         # Apex domain in prod, no subdomain prefix.
-        hostname_template: "thepolarbearclub3d.com"
+        hostname: "thepolarbearclub3d.com"

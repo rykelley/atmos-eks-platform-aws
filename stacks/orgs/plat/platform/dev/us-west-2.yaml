@@ -25,9 +25,10 @@ import:
 
   # Data
   - catalog/rds
+  - catalog/s3-bucket
 
   # App
-  - catalog/three-tier-app
+  - catalog/polarbear-app
 
 components:
   terraform:
@@ -115,10 +116,37 @@ components:
       vars:
         enabled: true
 
-    three-tier-app:
+    s3-bucket:
       metadata:
-        component: three-tier-app
+        component: s3-bucket
         inherits:
-          - three-tier-app
+          - s3-bucket
       vars:
         enabled: true
+        force_destroy: true   # OK in dev; flipped to false in prod
+
+    polarbear-app:
+      metadata:
+        component: polarbear-app
+        inherits:
+          - polarbear-app
+      vars:
+        enabled: true
+        # Dev points at the subdomain (matches dns-delegated zone)
+        hostname: "app.dev.thepolarbearclub3d.com"
+        cluster_issuer: "letsencrypt-staging"
+        replicas: 1
+        env_config:
+          NODE_ENV: "production"
+          NEXT_PUBLIC_SITE: "https://app.dev.thepolarbearclub3d.com"
+          EMAIL_VERIFICATION_ENDPOINT_URL: "https://app.dev.thepolarbearclub3d.com/api/email/verify"
+          EMAIL_PASSWORD_RESET_URL: "https://app.dev.thepolarbearclub3d.com/forgot-password"
+          DATABASE_TYPE: "pg"
+          STORAGE_PROVIDER: "s3"
+          EMAIL_PROVIDER: "resend"
+          DEPLOYMENT_PLATFORM: "node"
+          AUTH_TRUST_HOST: "true"
+          NEXT_PUBLIC_AUTH_CREDENTIALS: "1"
+          NEXT_PUBLIC_BLOG_SEARCH: "enable"
+          HOST: "0.0.0.0"
+          PORT: "3000"

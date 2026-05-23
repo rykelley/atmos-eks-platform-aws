@@ -32,8 +32,7 @@ components:
         multi_az: false
         deletion_protection: false
         skip_final_snapshot: true
-    three-tier-app:
+    polarbear-app:
       vars:
         cluster_issuer: "letsencrypt-staging"
-        backend_replicas: 1
-        frontend_replicas: 1
+        replicas: 1

@@ -1,0 +1,43 @@
+################################################################################
+# s3-bucket — Object storage for polar-bear-club-site user uploads.
+#
+# Consumed by the `polarbear-app` component, which provisions an IAM user
+# scoped to this bucket and exposes the access keys via Secrets Manager.
+################################################################################
+components:
+  terraform:
+    s3-bucket:
+      metadata:
+        component: s3-bucket
+        type: abstract
+      vars:
+        enabled: true
+        name: "polarbear-uploads"
+        acl: "private"
+        versioning_enabled: true
+        sse_algorithm: "AES256"
+        block_public_acls: true
+        block_public_policy: true
+        ignore_public_acls: true
+        restrict_public_buckets: true
+        force_destroy: false
+        allow_encrypted_uploads_only: false
+        cors_configuration:
+          - allowed_headers: ["*"]
+            allowed_methods: ["GET", "PUT", "POST", "DELETE", "HEAD"]
+            allowed_origins:
+              - "https://thepolarbearclub3d.com"
+              - "https://*.thepolarbearclub3d.com"
+            expose_headers: ["ETag"]
+            max_age_seconds: 3000
+        lifecycle_configuration_rules:
+          - id: "expire-stale-multipart-uploads"
+            enabled: true
+            abort_incomplete_multipart_upload_days: 7
+            filter_and:
+              prefix: ""
+              tags: {}
+            expiration: null
+            transition: []
+            noncurrent_version_expiration: null
+            noncurrent_version_transition: []

@@ -37,21 +37,22 @@ in a more-specific layer (stage mixin, top-level stack, etc.).
                   ┌──────┐
                   │ vpc  │
                   └──┬───┘
-            ┌────────┼────────────────┐
-            ▼        ▼                ▼
-        ┌──────┐  ┌─────────┐   ┌─────────────┐
-        │ rds  │  │  acm    │   │ eks/cluster │
-        └──┬───┘  └────┬────┘   └──────┬──────┘
-           │           │               │
-           │           │      ┌────────┼─────────────────────────┐
-           │           │      ▼        ▼          ▼              ▼
-           │           │   eks/aws-  eks/cert- eks/external- eks/external-
-           │           │   load-bal- manager   dns           secrets-operator
-           │           │   ancer-                            │
-           │           │   controller                        │
-           │           │      │        │          │          │
-           │           ▼      ▼        ▼          ▼          ▼
-           └─────► three-tier-app  (reads rds + eks via remote-state)
+       ┌─────┬───────┼────────────────┬──────────────┐
+       ▼     ▼       ▼                ▼              ▼
+   ┌──────┐┌──────┐┌─────────┐  ┌─────────────┐
+   │ rds  ││ s3-  ││  acm    │  │ eks/cluster │
+   │      ││bucket││         │  │             │
+   └──┬───┘└──┬───┘└────┬────┘  └──────┬──────┘
+      │      │          │              │
+      │      │          │   ┌──────────┼──────────────────────────┐
+      │      │          │   ▼          ▼            ▼             ▼
+      │      │          │  eks/aws-  eks/cert-  eks/external- eks/external-
+      │      │          │  load-bal- manager    dns           secrets-operator
+      │      │          │  ancer-                             │
+      │      │          │  controller                         │
+      │      │          │   │          │            │         │
+      │      │          ▼   ▼          ▼            ▼         ▼
+      └──────┴──────► polarbear-app  (reads rds + s3 + eks via remote-state)
 ```
 
 ## Multi-account / multi-region topology

@@ -1,0 +1,105 @@
+# Example GitHub Actions workflow for the polar-bear-club-site repo.
+# Copy this to `.github/workflows/build-and-push.yaml` IN THAT REPO
+# (not in the IaC repo).
+#
+# What it does:
+#   1. Builds the Docker image from the existing Dockerfile
+#   2. Tags it with both the commit SHA and `latest`
+#   3. Pushes to ghcr.io/<owner>/polar-bear-club-site
+#   4. (Optional) bumps the image_tag in the IaC repo via a PR — uncomment
+#      the trailing job + add a PAT secret to enable.
+
+name: build-and-push
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write       # required to push to GHCR
+  id-token: write       # required for PR-bumping job (optional)
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}   # e.g. rykelley/polar-bear-club-site
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image tags + labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # ---------------------------------------------------------------------------
+  # Optional: open a PR in the IaC repo to bump image_tag, so a merge to main
+  # triggers an Atmos plan/apply that rolls the cluster forward.
+  #
+  # Requires:
+  #   - A fine-grained PAT with `contents: write` on rykelley/atmos-eks-platform-aws
+  #     stored as the `IAC_REPO_PAT` secret in this repo.
+  # ---------------------------------------------------------------------------
+  # bump-iac:
+  #   needs: build
+  #   if: github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout IaC repo
+  #       uses: actions/checkout@v4
+  #       with:
+  #         repository: rykelley/atmos-eks-platform-aws
+  #         token: ${{ secrets.IAC_REPO_PAT }}
+  #         path: iac
+  #
+  #     - name: Bump image_tag in dev stack
+  #       run: |
+  #         cd iac
+  #         FILE=stacks/orgs/plat/platform/dev/us-west-2.yaml
+  #         sed -i "s/image_tag: \".*\"/image_tag: \"${{ needs.build.outputs.image_tag }}\"/" $FILE
+  #
+  #     - name: Open PR
+  #       uses: peter-evans/create-pull-request@v6
+  #       with:
+  #         token: ${{ secrets.IAC_REPO_PAT }}
+  #         path: iac
+  #         branch: bump/polarbear-app-${{ needs.build.outputs.image_tag }}
+  #         title: "bump: polarbear-app → ${{ needs.build.outputs.image_tag }} (dev)"
+  #         body: |
+  #           Auto-bump from polar-bear-club-site CI.
+  #
+  #           Built from commit ${{ github.sha }}.

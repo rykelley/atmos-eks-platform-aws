@@ -26,8 +26,8 @@ components:
         multi_az: true
         deletion_protection: true
         skip_final_snapshot: false
-    three-tier-app:
+    polarbear-app:
       vars:
         cluster_issuer: "letsencrypt-prod"
-        backend_replicas: 2
-        frontend_replicas: 2
+        replicas: 2
+        hostname: "stg.thepolarbearclub3d.com"

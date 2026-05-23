@@ -1,0 +1,186 @@
+################################################################################
+# polarbear-app — polar-bear-club-site Next.js 15 app on EKS
+#
+# Single-tier deployment:
+#   - 1 Deployment running the Next.js standalone server on port 3000
+#   - Init container that runs the Postgres schema before the app boots
+#   - Pulls image from GHCR (ghcr.io/<owner>/polar-bear-club-site:<tag>)
+#   - DB is RDS Postgres (read from `rds` component remote state)
+#   - Object storage is the S3 bucket from the `s3-bucket` component
+#       → Terraform creates an IAM user scoped to that bucket and stashes
+#         the keys in AWS Secrets Manager → ESO syncs them as env vars
+#
+# This is THE values file — every env var the app sees is configured here.
+# The pattern:
+#   * `env_config`  — non-secret env vars, rendered into a ConfigMap.
+#   * `env_secrets` — list of secret keys; ESO pulls the values from
+#                     AWS Secrets Manager. The Terraform component creates
+#                     the empty Secrets Manager secret on first apply;
+#                     populate it via the AWS console / CLI (one-time per
+#                     stage). See docs/secrets-bootstrap.md.
+#
+# Sensible defaults below assume you'll use Resend for email and Stripe
+# for payments. Comment / uncomment to fit your real integrations.
+################################################################################
+components:
+  terraform:
+    polarbear-app:
+      metadata:
+        component: polarbear-app
+        type: abstract
+      vars:
+        enabled: true
+        kubernetes_namespace: "polarbear-app"
+        create_namespace: true
+
+        # ---------------------------------------------------------------
+        # Image — bump `image_tag` to roll a new release.
+        # The CI in the polar-bear-club-site repo builds + pushes to GHCR;
+        # see docs/app-ci-example.yaml for the workflow file.
+        # ---------------------------------------------------------------
+        image: "ghcr.io/rykelley/polar-bear-club-site"
+        image_tag: "latest"
+        image_pull_policy: "IfNotPresent"
+        # If GHCR repo is private, set image_pull_secret_name and create
+        # the dockerconfigjson secret out-of-band (or via ExternalSecret).
+        image_pull_secret_name: ""
+
+        # ---------------------------------------------------------------
+        # Sizing
+        # ---------------------------------------------------------------
+        replicas: 2
+        port: 3000
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            memory: "1Gi"
+
+        # ---------------------------------------------------------------
+        # HTTPS / Ingress
+        # ---------------------------------------------------------------
+        # Stage mixins override hostname:
+        #   dev    → app.dev.thepolarbearclub3d.com
+        #   prod   → thepolarbearclub3d.com (apex)
+        hostname: "app.dev.thepolarbearclub3d.com"
+        cluster_issuer: "letsencrypt-prod"
+        ingress_class_name: "alb"
+        ingress_annotations:
+          alb.ingress.kubernetes.io/scheme: "internet-facing"
+          alb.ingress.kubernetes.io/target-type: "ip"
+          alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+          alb.ingress.kubernetes.io/ssl-redirect: "443"
+          alb.ingress.kubernetes.io/ssl-policy: "ELBSecurityPolicy-TLS13-1-2-2021-06"
+          alb.ingress.kubernetes.io/healthcheck-path: "/api/healthcheck"
+          alb.ingress.kubernetes.io/healthcheck-protocol: "HTTP"
+          alb.ingress.kubernetes.io/backend-protocol: "HTTP"
+
+        # ---------------------------------------------------------------
+        # Database — schema is applied by an init container (psql) before
+        # the Next.js process starts. Idempotent (CREATE TABLE IF NOT EXISTS).
+        # ---------------------------------------------------------------
+        run_db_schema_init: true
+        # Postgres uses double-quoted identifiers; the upstream schema.sql
+        # uses MySQL-style backticks for the `storage.key` column. We ship
+        # a Postgres-compatible variant inline.
+        db_schema_sql: |
+          CREATE TABLE IF NOT EXISTS tokens (
+            email VARCHAR(255) PRIMARY KEY,
+            code TEXT,
+            expires_at TIMESTAMP NULL
+          );
+          CREATE TABLE IF NOT EXISTS access (
+            email VARCHAR(255) PRIMARY KEY,
+            code TEXT
+          );
+          CREATE TABLE IF NOT EXISTS login (
+            email VARCHAR(255) PRIMARY KEY,
+            password TEXT
+          );
+          CREATE TABLE IF NOT EXISTS emails_verified (
+            email VARCHAR(255) PRIMARY KEY,
+            code TEXT
+          );
+          CREATE TABLE IF NOT EXISTS waitlist (
+            email VARCHAR(255) PRIMARY KEY
+          );
+          CREATE TABLE IF NOT EXISTS storage (
+            "key" VARCHAR(255) PRIMARY KEY,
+            value TEXT
+          );
+
+        # ---------------------------------------------------------------
+        # Non-secret env vars (→ ConfigMap → envFrom)
+        #
+        # Edit freely. Keys you don't want exposed go in `env_secrets`
+        # below instead.
+        # ---------------------------------------------------------------
+        env_config:
+          NODE_ENV: "production"
+          NODE_VERSION: "18"
+          HOST: "0.0.0.0"
+          PORT: "3000"
+
+          DATABASE_TYPE: "pg"
+          STORAGE_PROVIDER: "s3"
+          EMAIL_PROVIDER: "resend"
+          DEPLOYMENT_PLATFORM: "node"
+
+          AUTH_TRUST_HOST: "true"
+          NEXT_PUBLIC_AUTH_CREDENTIALS: "1"
+          NEXT_PUBLIC_ENABLE_PWA: "1"
+          NEXT_PUBLIC_BLOG_SEARCH: "enable"
+
+          # Default URLs — overridden per-stage in the mixin so that dev
+          # points at https://app.dev.thepolarbearclub3d.com etc.
+          NEXT_PUBLIC_SITE: "https://thepolarbearclub3d.com"
+          EMAIL_VERIFICATION_ENDPOINT_URL: "https://thepolarbearclub3d.com/api/email/verify"
+          EMAIL_PASSWORD_RESET_URL: "https://thepolarbearclub3d.com/forgot-password"
+
+          # AWS S3 region/bucket — set automatically by Terraform from the
+          # `s3-bucket` component's outputs (see component vars below);
+          # overrides here win if you want to point at an external bucket.
+          # AWS_REGION_NAME: "us-west-2"
+          # AWS_S3_BUCKET_NAME: "..."
+
+        # ---------------------------------------------------------------
+        # Secret env vars (→ pulled from AWS Secrets Manager via ESO)
+        #
+        # Each entry maps a Kubernetes Secret env-var key to the JSON key
+        # inside the Secrets Manager secret. Add / remove based on which
+        # integrations you actually use.
+        #
+        # The Terraform component:
+        #   1. Creates an empty Secrets Manager secret named
+        #      "<namespace>/<stage>/polarbear-app/integrations" so ESO can
+        #      sync from it on first deploy.
+        #   2. You populate the JSON values via the AWS console / CLI.
+        #      docs/secrets-bootstrap.md walks you through it.
+        # ---------------------------------------------------------------
+        env_secrets:
+          AUTH_SECRET:           "AUTH_SECRET"
+          PRIVATE_ACCESS_KEY:    "PRIVATE_ACCESS_KEY"
+          BASIC_AUTH_USERNAME:   "BASIC_AUTH_USERNAME"
+          BASIC_AUTH_PASSWORD:   "BASIC_AUTH_PASSWORD"
+
+          RESEND_API_KEY:        "RESEND_API_KEY"
+
+          STRIPE_SECRET_KEY:     "STRIPE_SECRET_KEY"
+          STRIPE_WEBHOOK_SIG:    "STRIPE_WEBHOOK_SIG"
+
+          # Uncomment what you actually use:
+          # GOOGLE_AUTH_ID:      "GOOGLE_AUTH_ID"
+          # GOOGLE_AUTH_SECRET:  "GOOGLE_AUTH_SECRET"
+          # GITHUB_AUTH_ID:      "GITHUB_AUTH_ID"
+          # GITHUB_AUTH_SECRET:  "GITHUB_AUTH_SECRET"
+          # TELEGRAM_BOT_TOKEN:  "TELEGRAM_BOT_TOKEN"
+          # SENDGRID_API_KEY:    "SENDGRID_API_KEY"
+
+        # ---------------------------------------------------------------
+        # Wired in via remote state (in main.tf) — don't edit unless you
+        # know what you're doing.
+        # ---------------------------------------------------------------
+        rds_component_name: "rds"
+        eks_component_name: "eks/cluster"
+        s3_component_name:  "s3-bucket"
